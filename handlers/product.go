@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
 )
 
@@ -56,8 +57,24 @@ func (h *handlerProduct) GetProduct(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func convertResponseProduct(u models.Product) models.ProductResponse {
+	return models.ProductResponse{
+		ID:       u.ID,
+		Name:     u.Name,
+		Desc:     u.Desc,
+		Price:    u.Price,
+		Image:    u.Image,
+		Qty:      u.Qty,
+		User:     u.User,
+		Category: u.Category,
+	}
+}
 func (h *handlerProduct) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
+	// get data user token
+	userInfo := r.Context().Value("userInfo").(jwt.MapClaims)
+	userId := int(userInfo["id"].(float64))
 
 	request := new(productdto.ProductRequest)
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -82,7 +99,7 @@ func (h *handlerProduct) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		Price:  request.Price,
 		Image:  request.Image,
 		Qty:    request.Qty,
-		UserID: request.UserID,
+		UserID: userId,
 	}
 
 	product, err = h.ProductRepository.CreateProduct(product)
@@ -98,17 +115,4 @@ func (h *handlerProduct) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	response := dto.SuccessResult{Code: http.StatusOK, Data: product}
 	json.NewEncoder(w).Encode(response)
-}
-
-func convertResponseProduct(u models.Product) models.ProductResponse {
-	return models.ProductResponse{
-		ID:       u.ID,
-		Name:     u.Name,
-		Desc:     u.Desc,
-		Price:    u.Price,
-		Image:    u.Image,
-		Qty:      u.Qty,
-		User:     u.User,
-		Category: u.Category,
-	}
 }
